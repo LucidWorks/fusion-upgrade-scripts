@@ -27,7 +27,6 @@ from src.migrator.splitter_migrator import SplitterMigrator
 
 log_format = "%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s"
 log_level = logging.INFO
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s")
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +180,8 @@ if __name__ == "__main__":
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
+    
+    logging.basicConfig(level=log_level, format=log_format)
     logger.setLevel(log_level)
     
     data_sources_to_migrate = args.datasources
