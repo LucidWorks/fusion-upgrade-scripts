@@ -91,7 +91,7 @@ def upgrade_zk_data(fusion_home, old_fusion_version, fusion_version, fusion_old_
         old_config = load_or_generate_config(fusion_old_home, 'ui', fusion_home)
         old_zk_client = start_zk_client(old_config)
     elif fusion_old_zk:
-        old_zk_client = start_zk_client(fusion_old_zk)
+        old_zk_client = start_zk_client({'fusion.zk.connect': fusion_old_zk})
 
     logger.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
     if StrictVersion(fusion_version) >= StrictVersion("3.0.0") > StrictVersion(old_fusion_version):
