@@ -53,6 +53,9 @@ parser.add_argument("--dualZK",
                          " associated with OLD_FUSION_HOME instead of from one associated "
                          "with FUSION_HOME", 
                     choices=['T', 't', 'True', 'true', 'F', 'f', 'false', 'False'])
+parser.add_argument("--oldZK", 
+                    required=False, 
+                    help="If true, will try to pull Zookeeper configs from server address supplied")
 parser.add_argument("--log-level",
                     default="INFO",
                     required=False,
@@ -77,7 +80,7 @@ def start_zk_client(fconfig):
 def stop_zk_client(zk):
     zk.stop()
 
-def upgrade_zk_data(fusion_home, fusion_old_home, old_fusion_version, fusion_version):
+def upgrade_zk_data(fusion_home, old_fusion_version, fusion_version, fusion_old_home=None, fusion_old_zk=None):
     # Load the 3.0.0 config from file or generate if needed. This will load from the config generated above.
     config = load_or_generate_config(fusion_home)
     zk_client = start_zk_client(config)
@@ -87,6 +90,8 @@ def upgrade_zk_data(fusion_home, fusion_old_home, old_fusion_version, fusion_ver
     	#TODO: Check version for < 3 before assuming that need to pass in new fusion_home for jar
         old_config = load_or_generate_config(fusion_old_home, 'ui', fusion_home)
         old_zk_client = start_zk_client(old_config)
+    elif fusion_old_zk:
+        old_zk_client = start_zk_client(fusion_old_zk)
 
     logger.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
     if StrictVersion(fusion_version) >= StrictVersion("3.0.0") > StrictVersion(old_fusion_version):
@@ -188,6 +193,7 @@ if __name__ == "__main__":
     data_sources_to_migrate = args.datasources
     type_of_upgrade = args.upgrade
     dual_zk = args.dualZK
+    old_zk = args.oldZK
     ensure_env_variables_defined()
     old_fusion_version = VariablesHelper.get_old_fusion_version()
     fusion_version = VariablesHelper.get_fusion_version()
@@ -200,10 +206,17 @@ if __name__ == "__main__":
         config_migrator.convert()
     elif type_of_upgrade == "zk":
         foh = None
+        ozk = None
         #Exclude old home by default and only try to load if specified in params
+        if old_zk:
+        	ozk = old_zk
         if dual_zk and dual_zk.lower() in ['t','true']:
             foh = fusion_old_home
-        upgrade_zk_data(fusion_home, foh, old_fusion_version, fusion_version)
+        upgrade_zk_data(fusion_home, 
+                        old_fusion_version, 
+                        fusion_version, 
+                        fusion_old_home = foh, 
+                        fusion_old_zk = ozk)
     elif type_of_upgrade == "banana":
         url = args.fusion_url
         username = args.fusion_username

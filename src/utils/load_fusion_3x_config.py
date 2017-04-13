@@ -88,6 +88,7 @@ def parse_solr_namespace(solr_zk_connect):
 def load_or_generate_config(fusion_home, service="ui", jar_home=None):
     config_file_path = generate_config_file(fusion_home, service, jar_home)
     config = load_config_from_file(config_file_path, service)
+    logger.debug('Configuration: {0}'.format(config))
     os.remove(config_file_path)
     # you're assuming here that if zk is external then solr is also external which may not be correct. You can have
     # external zk and internal solr resulting in only a fusion.zk.connect string so you have to account for them both
@@ -100,6 +101,7 @@ def load_or_generate_config(fusion_home, service="ui", jar_home=None):
 def load_or_generate_config3(fusion_home, service="ui", jar_home=None):
     config_file_path = generate_config_file(fusion_home, service, jar_home)
     config = load_config_from_file(config_file_path, service)
+    logger.debug('Configuration: {0}'.format(config))
     os.remove(config_file_path)
     # you're assuming here that if zk is external then solr is also external which may not be correct. You can have
     # external zk and internal solr resulting in only a fusion.zk.connect string so you have to account for them both
