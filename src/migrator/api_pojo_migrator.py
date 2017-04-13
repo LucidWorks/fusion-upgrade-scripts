@@ -12,7 +12,8 @@ def update_searchcluster_pojo(config, zk, old_zk):
     elif zk.exists(searchcluster_znode_path):
         value, zstat = zk.get(searchcluster_znode_path)
     else:
-        sys.exit("Search cluster POJO does not exist at zpath '{}'".format(searchcluster_znode_path))
+        logging.critical("Search cluster POJO does not exist at zpath '{}'".format(searchcluster_znode_path))
+        sys.exit(1)
 
     # Read the payload from Zookeeper
     

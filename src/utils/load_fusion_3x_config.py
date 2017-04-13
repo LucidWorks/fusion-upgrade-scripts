@@ -33,7 +33,7 @@ def generate_config_file(fusion_home, service="ui"):
     # even if the file exists, it could have been generated off a seperate set of fusion configs or even a different 
     # fusion version so we should ALWAYS recreate it
     if os.path.exists(file_fullpath):
-        logging.info("File '{}' exists, deleting old version"))
+        logging.info("File '{}' exists, deleting old version".format(file_fullpath))
         os.remove(file_fullpath)
     logging.info("Creating config file using agent")
     jar_path = os.path.join(fusion_home, "apps", "lucidworks-agent.jar")
@@ -43,16 +43,19 @@ def generate_config_file(fusion_home, service="ui"):
     popen = subprocess.Popen(args)
     return_code = popen.wait()
     if not os.path.exists(file_fullpath):
-        sys.exit("Failed to generate config file using the command '{}' at path '{}'. Return code '{}'".format(command, file_fullpath, return_code))
+        logging.critical("Failed to generate config file using the command '{}' at path '{}'. Return code '{}'".format(command, file_fullpath, return_code))
+        sys.exit(1)
     logging.info("Generated config file at path '{}'".format(file_fullpath))
     return file_fullpath
 
 
 def load_config_from_file(path, service="ui"):
     if not os.path.exists(path):
-        sys.exit(
-            "Config file does not exist at path '{0}'.\n Please run"
-            " 'java -jar apps/lucidworks-agent.jar config -o {1}.config.json {1}' command from '{2}' to generate the config file".format(path, service, VariablesHelper.FUSION_HOME))
+        logging.critical("CRITICAL: Config file does not exist at path '{0}'.\n Please run"
+                         " 'java -jar apps/lucidworks-agent.jar config -o {1}.config.json {1}' command from '{2}' "
+                         "to generate the config file".format(path, service, VariablesHelper.FUSION_HOME))
+        sys.exit(1)
+
     deser_payload = json.load(open(path))
     config = {}
     try:
@@ -84,7 +87,7 @@ def load_or_generate_config(fusion_home, service="ui"):
     # external zk and internal solr resulting in only a fusion.zk.connect string so you have to account for them both
     # Sidenote: I honestly have no idea why the config is being generated with a solr.zk.connect string when it isn't
     # defined in the fusion.properties... something in that Jar being run to generate the config is off
-    config["solr.namespace"] = parse_solr_namespace(config["solr.zk.connect"] || config["fusion.zk.connect"])
+    config["solr.namespace"] = parse_solr_namespace(config["solr.zk.connect"] or config["fusion.zk.connect"])
     return config
 
 

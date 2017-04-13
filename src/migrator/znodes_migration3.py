@@ -16,7 +16,8 @@ class ZNodesMigrator3:
         logging.info("Migrating Solr data from {} to new ZK namespace {}".format(self.old_config["solr.namespace"], self.config["solr.namespace"]))
         old_solr_znode_root = self.old_config["solr.namespace"]
         if not self.zk.exists(old_solr_znode_root):
-            sys.exit("Could not find zkpath '{}'".format(old_solr_znode_root))
+            logging.critical("Could not find zkpath '{}'".format(old_solr_znode_root))
+            sys.exit(1)
         solr_znodes = ["aliases.json", "clusterstate.json", "collections", "configs", "live_nodes", "overseer",
                        "overseer_elect", "security.json"]
         self.copy_znode_data(solr_znodes, self.old_config["solr.namespace"], self.config["solr.namespace"])
@@ -25,14 +26,16 @@ class ZNodesMigrator3:
         logging.info("Migrating api data from {} to new ZK namespace {}".format(self.old_config["api.namespace"], self.config["api.namespace"]))
         old_core_znode_root = self.old_config["api.namespace"]
         if not self.zk.exists(old_core_znode_root):
-            sys.exit("Could not find zkpath '{}'".format(old_core_znode_root))
+            logging.critical("Could not find zkpath '{}'".format(old_core_znode_root))
+            sys.exit(1)
         self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["api.namespace"])
 
     def migrate_proxy_data(self):
         logging.info("Migrating proxy data from {} to new ZK namespace {}".format(self.old_config["proxy.namespace"], self.config["proxy.namespace"]))
         old_core_znode_root = self.old_config["proxy.namespace"]
         if not self.zk.exists(old_core_znode_root):
-            sys.exit("Could not find zkpath '{}'".format(old_core_znode_root))
+            logging.critical("Could not find zkpath '{}'".format(old_core_znode_root))
+            sys.exit(1)
         self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["proxy.namespace"])
 
     def copy_znode_data(self, znodes, old_root, new_root):

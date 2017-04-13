@@ -13,7 +13,8 @@ def update_initmeta_pojo(config, zk, old_zk):
         # I am leaving this in here for now but unsure why the system used to just warn and continue instead
         # of exiting or returning when the init-meta POJO doesn't exist
         logging.warn("init-meta POJO does not exist at zpath '{}'".format(initmeta_znode_path))
-        #sys.exit("init-meta POJO does not exist at zpath '{}'".format(initmeta_znode_path))
+        #logging.critical("init-meta POJO does not exist at zpath '{}'".format(initmeta_znode_path))
+        #sys.exit(1)
 
     # Read the payload from Zookeeper
     deser_payload = json.loads(value)

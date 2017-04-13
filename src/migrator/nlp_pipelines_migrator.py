@@ -88,10 +88,10 @@ class PipelinesNLPMigrator3x:
         # Get all the index pipelines
         zk_pipelines_node = "{}/{}".format(self.zk_fusion_node, INDEXPIPELINES_ZPATH)
 
-		if self.old_zk and self.old_zk.exists(zk_pipelines_node):
-			read_zk = old_zk
+        if self.old_zk and self.old_zk.exists(zk_pipelines_node):
+            read_zk = old_zk
         elif not self.read_zk.exists(zk_pipelines_node):
-        	logging.info("NLP znode path {} does not exist. No migrations to perform".format(zk_pipeline_node))
+            logging.info("NLP znode path {} does not exist. No migrations to perform".format(zk_pipeline_node))
             return
 
         children = self.read_zk.get_children(zk_pipelines_node)

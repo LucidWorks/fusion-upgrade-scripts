@@ -30,23 +30,42 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s")
 
 parser = argparse.ArgumentParser(description="Migrate datasource properties")
-parser.add_argument("--datasources", required=False, nargs='*',
+parser.add_argument("--datasources", 
+                    required=False, 
+                    nargs='*',
                     help="Set 'all' to migrate all datasources with a valid "
                          "migrator implementation, or set a datasources list to be migrated")
-parser.add_argument("--upgrade", required=True, choices=['config', 'zk', 'banana'],
+parser.add_argument("--upgrade", 
+                    required=True, 
+                    choices=['config', 'zk', 'banana'],
                     help="Type of upgrade to perform")
-parser.add_argument("--fusion-url", default="http://localhost:8764/api", help="URL of the Fusion proxy server")
-parser.add_argument("--fusion-username", default="admin", help="Username to use when authenticating to the Fusion application (should be an admin)")
-parser.add_argument("--dualZK", required=False, help="If true, will try to pull Zookeeper configs from server associated with OLD_FUSION_HOME instead of from one associated with FUSION_HOME", choices['T', 't', 'True', 'true', 'F', 'f', 'false', 'False'])
+parser.add_argument("--fusion-url", 
+                    default="http://localhost:8764/api", 
+                    help="URL of the Fusion proxy server")
+parser.add_argument("--fusion-username", 
+                    default="admin", 
+                    help="Username to use when authenticating to the Fusion application (should be an admin)")
+parser.add_argument("--dualZK", 
+                    default="false", 
+                    required=False, 
+                    help="If true, will try to pull Zookeeper configs from server"
+                         " associated with OLD_FUSION_HOME instead of from one associated "
+                         "with FUSION_HOME", 
+                    choices=['T', 't', 'True', 'true', 'F', 'f', 'false', 'False'])
+parser.add_argument("--log-level",
+                    default="INFO",
+                    required=False,
+                    help="Output log level for script run",
+                    choices=['CRITICAL','ERROR','WARNING','INFO','DEBUG'])
 
 def ensure_env_variables_defined():
     if not VariablesHelper.ensure_fusion_home():
-        logging.info("FUSION_HOME env variable is not set")
-        exit()
+        logging.critical("FUSION_HOME env variable is not set")
+        exit(1)
 
     if not VariablesHelper.ensure_old_fusion_home():
-        logging.info("FUSION_OLD_HOME env variable is not set")
-        exit()
+        logging.critical("FUSION_OLD_HOME env variable is not set")
+        exit(1)
 
 def start_zk_client(fconfig):
     zookeeper_client = ZookeeperClient(fconfig["fusion.zk.connect"])
@@ -60,9 +79,12 @@ def stop_zk_client(zk):
 def upgrade_zk_data(fusion_home, fusion_old_home, old_fusion_version, fusion_version):
     # Load the 3.0.0 config from file or generate if needed. This will load from the config generated above.
     config = load_or_generate_config(fusion_home)
-    old_config = load_or_generate_config(fusion_old_home)
     zk_client = start_zk_client(config)
-    old_zk_client = start_zk_client(old_config)
+    old_config = None
+    old_zk_client = None
+    if fusion_old_home:
+        old_config = load_or_generate_config(fusion_old_home)
+        old_zk_client = start_zk_client(old_config)
 
     logging.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
     if StrictVersion(fusion_version) >= StrictVersion("3.0.0") > StrictVersion(old_fusion_version):
@@ -101,7 +123,7 @@ def admin_session(url, username, password):
     if resp.status_code == 201:
         return session
     else:
-        logging.error("Expected status code 201. Got {}\n{}".format(resp.status_code,resp.content))
+        logging.critical("Expected status code 201. Got {}\n{}".format(resp.status_code,resp.content))
         sys.exit(1)
 
 def get_dashboards_from_solr(session, url):
@@ -113,7 +135,7 @@ def get_dashboards_from_solr(session, url):
             logging.info("Found '{}' dashboards from collection system_banana".format(len(dashboard_documents)))
             return dashboard_documents
         else:
-            logging.error("Error retrieving documents from url {}\n. Response text is {}".format(solr_url, resp.text))
+            logging.critical("Error retrieving documents from url {}\n. Response text is {}".format(solr_url, resp.text))
             sys.exit(1)
     except Exception as e:
         logging.error("Exception while processing request to {}".format(solr_url))
@@ -144,6 +166,20 @@ def upgrade_banana_dashboards(url, username, password):
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    log_level = args.log_level.lower()
+    if log_level == 'critical':
+        logging.setLevel(logging.CRITICAL)
+    elif log_level == 'error':
+        logging.setLevel(logging.ERROR)
+    elif log_level == 'warning':
+        logging.setLevel(logging.WARNING)
+    elif log_level == 'info':
+        logging.setLevel(logging.INFO)
+    elif log_level == 'debug':
+        logging.setLevel(logging.DEBUG)
+    else
+        logging.setLevel(logging.INFO)
+    
     data_sources_to_migrate = args.datasources
     type_of_upgrade = args.upgrade
     dual_zk = args.dualZK
@@ -160,7 +196,7 @@ if __name__ == "__main__":
     elif type_of_upgrade == "zk":
         foh = None
         #Exclude old home by default and only try to load if specified in params
-        if dual and dual.lower() in ['t','true']:
+        if dual_zk and dual_zk.lower() in ['t','true']:
             foh = fusion_old_home
         upgrade_zk_data(fusion_home, foh, old_fusion_version, fusion_version)
     elif type_of_upgrade == "banana":
