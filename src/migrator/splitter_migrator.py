@@ -4,9 +4,9 @@ from src.utils.constants import *
 import json
 import logging
 
+logger = logging.getLogger(__name__)
 
 class SplitterMigrator():
-  logger = logging.getLogger(__name__)
   DEFAULT_CSV_PARSER = {
     "type": "csv",
     "charset": "detect",

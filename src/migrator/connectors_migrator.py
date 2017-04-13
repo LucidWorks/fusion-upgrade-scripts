@@ -13,8 +13,9 @@ import re
 import sys
 import json
 
+logger = logging.getLogger(__name__)
+
 class ConnectorsMigrator:
-  logger = logging.getLogger(__name__)
   def __init__(self):
     self.class_loader = ClassLoader()
     self.zk_fusion_host = VariablesHelper.get_fusion_zookeeper_host()
@@ -84,7 +85,6 @@ class ConnectorsMigrator:
             continue
 
 class ConnectorsMigrator3x:
-    logger = logging.getLogger(__name__)
     def __init__(self, config, zk, old_zk):
         self.class_loader = ClassLoader()
         self.zk_fusion_host = config["fusion.zk.connect"]

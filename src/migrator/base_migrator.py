@@ -1,9 +1,9 @@
 from src.utils.constants import *
 
 import logging
+logger = logging.getLogger(__name__)
 
 class BaseMigrator:
-  logger = logging.getLogger(__name__)
   def delete_properties(self, data_source, properties):
     for property in properties:
       try:

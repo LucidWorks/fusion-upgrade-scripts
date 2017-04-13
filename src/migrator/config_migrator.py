@@ -7,9 +7,9 @@ from collections import OrderedDict
 from utils.jproperties import Properties
 from utils.variables_helper import VariablesHelper
 
+logger = logging.getLogger(__name__)
 
 class ConfigMigrator():
-    logger = logging.getLogger(__name__)
     # These are the defaults as of 2.4.3. Do we need different defaults for different versions?
     default_properties = {"API_JAVA_OPTIONS": "-Xmx1g -XX:MaxPermSize=256m -Dapple.awt.UIElement=true",
                           "API_PORT": "8765",

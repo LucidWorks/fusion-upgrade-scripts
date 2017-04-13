@@ -1,8 +1,9 @@
 import json
 import logging
 
+logger = logging.getLogger(__name__)
+
 def update_initmeta_pojo(config, zk, old_zk):
-    logger = logging.getLogger(__name__)
     initmeta_znode_path = "{}/sys/init-meta".format(config["proxy.namespace"])
     
     # if the POJO does not exist on either server, exit... Otherwise, grab it from the appropriate server

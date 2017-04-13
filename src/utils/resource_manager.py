@@ -5,8 +5,8 @@ import json
 import re
 import logging
 
-class ResourceManager:
-  logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+class ResourceManager:  
   def __init__(self):
     pass
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import logging
+logger = logging.getLogger(__name__)
 
 class ClassLoader:
-  logger = logging.getLogger(__name__)
   classes_cache = {}
 
   def get_class(self, classname):

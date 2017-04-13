@@ -1,8 +1,9 @@
 import sys
 import logging
 
-class ZNodesMigrator3:
-    logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
+class ZNodesMigrator3:    
     def __init__(self, old_config, config, zk):
         self.old_config = old_config
         self.config = config

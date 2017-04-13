@@ -4,9 +4,9 @@ from kazoo.client import KazooClient
 import json
 import logging
 
+logger = logging.getLogger(__name__)
+
 class ZookeeperClient:
-  logger = logging.getLogger(__name__)
-  
   def __init__(self, zk_host):
     self.zk = KazooClient(hosts=zk_host)
 

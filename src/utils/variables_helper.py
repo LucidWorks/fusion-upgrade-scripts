@@ -4,9 +4,8 @@ import logging
 import sys
 import platform
 
+logger = logging.getLogger(__name__)
 class VariablesHelper:
-  logger = logging.getLogger(__name__)
-
   def __init__(self):
     pass
 

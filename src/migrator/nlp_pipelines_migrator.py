@@ -73,7 +73,6 @@ def fix_pipeline_extractor_stages(pipeline):
     Use this class to upgrade from 2.1.x to 3.0.x
 """
 class PipelinesNLPMigrator3x:
-
     def __init__(self, config, zk, old_zk):
         self.class_loader = ClassLoader()
         self.zk_fusion_host = config["fusion.zk.connect"]
