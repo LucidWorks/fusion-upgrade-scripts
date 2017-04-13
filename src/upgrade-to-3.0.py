@@ -27,6 +27,9 @@ from src.migrator.splitter_migrator import SplitterMigrator
 
 log_format = "%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s"
 log_level = logging.INFO
+logging.basicConfig(log_level, format=log_format)
+
+logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description="Migrate datasource properties")
 parser.add_argument("--datasources", 
@@ -59,11 +62,11 @@ parser.add_argument("--log-level",
 
 def ensure_env_variables_defined():
     if not VariablesHelper.ensure_fusion_home():
-        logging.critical("FUSION_HOME env variable is not set")
+        logger.critical("FUSION_HOME env variable is not set")
         exit(1)
 
     if not VariablesHelper.ensure_old_fusion_home():
-        logging.critical("FUSION_OLD_HOME env variable is not set")
+        logger.critical("FUSION_OLD_HOME env variable is not set")
         exit(1)
 
 def start_zk_client(fconfig):
@@ -85,12 +88,12 @@ def upgrade_zk_data(fusion_home, fusion_old_home, old_fusion_version, fusion_ver
         old_config = load_or_generate_config(fusion_old_home)
         old_zk_client = start_zk_client(old_config)
 
-    logging.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
+    logger.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
     if StrictVersion(fusion_version) >= StrictVersion("3.0.0") > StrictVersion(old_fusion_version):
         znode_migrator = ZNodesMigrator(config, zk_client, old_zk_client)
-        logging.info("Copying znodes from old fusion paths to new paths")
+        logger.info("Copying znodes from old fusion paths to new paths")
         znode_migrator.start()
-        logging.info("Migration from old znode paths to new paths complete")
+        logger.info("Migration from old znode paths to new paths complete")
 
         update_searchcluster_pojo(config, zk_client, old_zk_client)
         update_initmeta_pojo(config, zk_client, old_zk_client)
@@ -99,7 +102,7 @@ def upgrade_zk_data(fusion_home, fusion_old_home, old_fusion_version, fusion_ver
         connectors_migrator = ConnectorsMigrator3x(config, zk_client, old_zk_client)
         connectors_migrator.start(data_sources_to_migrate)
 
-        logging.info("Performing splitter migrator")
+        logger.info("Performing splitter migrator")
         splitter_migrator = SplitterMigrator(config, zk_client, old_zk_client)
         splitter_migrator.start()
 
@@ -122,7 +125,7 @@ def admin_session(url, username, password):
     if resp.status_code == 201:
         return session
     else:
-        logging.critical("Expected status code 201. Got {}\n{}".format(resp.status_code,resp.content))
+        logger.critical("Expected status code 201. Got {}\n{}".format(resp.status_code,resp.content))
         sys.exit(1)
 
 def get_dashboards_from_solr(session, url):
@@ -131,13 +134,13 @@ def get_dashboards_from_solr(session, url):
     try:
         if resp.status_code == 200:
             dashboard_documents = resp.json()["response"]["docs"]
-            logging.info("Found '{}' dashboards from collection system_banana".format(len(dashboard_documents)))
+            logger.info("Found '{}' dashboards from collection system_banana".format(len(dashboard_documents)))
             return dashboard_documents
         else:
-            logging.critical("Error retrieving documents from url {}\n. Response text is {}".format(solr_url, resp.text))
+            logger.critical("Error retrieving documents from url {}\n. Response text is {}".format(solr_url, resp.text))
             sys.exit(1)
     except Exception as e:
-        logging.error("Exception while processing request to {}".format(solr_url))
+        logger.error("Exception while processing request to {}".format(solr_url))
         raise e
 
 def upload_dashboards_to_blobstore(session, url, docs):
@@ -151,9 +154,9 @@ def upload_dashboards_to_blobstore(session, url, docs):
             dashboard_url = "{}?subtype=banana".format(blob_url)
             resp = session.post(dashboard_url, data=json.dumps([doc]))
         if resp and resp.status_code == 200:
-            logging.info("Uploaded dashboard {} to blob store".format(doc["id"]))
+            logger.info("Uploaded dashboard {} to blob store".format(doc["id"]))
         else:
-            logging.error("Dashboard upload to blob store resulted in '{}' status code. Response is '{}'".format(resp.status_code, resp.text))
+            logger.error("Dashboard upload to blob store resulted in '{}' status code. Response is '{}'".format(resp.status_code, resp.text))
 
 def upgrade_banana_dashboards(url, username, password):
     session = admin_session(url, username, password)
@@ -161,7 +164,7 @@ def upgrade_banana_dashboards(url, username, password):
     if docs and len(docs) > 0:
         upload_dashboards_to_blobstore(session, url, docs)
     else:
-        logging.info("No dashboards found in the system collection 'system_banana'")
+        logger.info("No dashboards found in the system collection 'system_banana'")
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -178,9 +181,7 @@ if __name__ == "__main__":
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
-    
-    logging.basicConfig(log_level,
-                        format=log_format)
+    logger.setLevel(log_level)
     
     data_sources_to_migrate = args.datasources
     type_of_upgrade = args.upgrade

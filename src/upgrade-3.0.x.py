@@ -20,18 +20,18 @@ from src.migrator.api_pojo_migrator import update_searchcluster_pojo
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s")
-
+logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description="Migrate data")
 parser.add_argument("--fusion-url", default="http://localhost:8764/api", help="URL of the Fusion proxy server")
 parser.add_argument("--fusion-username", default="admin", help="Username to use when authenticating to the Fusion application (should be an admin)")
 
 def ensure_env_variables_defined():
     if not VariablesHelper.ensure_fusion_home():
-        logging.info("FUSION_HOME env variable is not set")
+        logger.info("FUSION_HOME env variable is not set")
         exit()
 
     if not VariablesHelper.ensure_old_fusion_home():
-        logging.info("FUSION_OLD_HOME env variable is not set")
+        logger.info("FUSION_OLD_HOME env variable is not set")
         exit()
 
 def start_zk_client(fconfig):
@@ -51,12 +51,12 @@ def upgrade_zk_data(fusion_old_home, fusion_home, old_fusion_version, fusion_ver
 
     zk_client = start_zk_client(config)
 
-    logging.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
+    logger.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
     if StrictVersion(fusion_version) > StrictVersion(old_fusion_version) >= StrictVersion("3.0.0"):
         znode_migrator = ZNodesMigrator3(old_config, config, zk_client)
-        logging.info("Copying znodes from old fusion paths to new paths")
+        logger.info("Copying znodes from old fusion paths to new paths")
         znode_migrator.start()
-        logging.info("Migration from old znode paths to new paths complete")
+        logger.info("Migration from old znode paths to new paths complete")
 
         update_searchcluster_pojo(config, zk_client)
 

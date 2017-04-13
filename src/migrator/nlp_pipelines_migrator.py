@@ -8,7 +8,7 @@ from src.utils.zookeeper_client import ZookeeperClient
 from src.utils.variables_helper import VariablesHelper
 
 import logging
-
+logger = logging.getLogger(__name__)
 
 OPENNLP_TYPE = "nlp-extractor"
 LOOKUP_TYPE = "lookup-extractor"
@@ -17,7 +17,6 @@ LOOKUP_TYPE = "lookup-extractor"
     Should be used to upgrade from 2.1.x to 2.4.x
 """
 class PipelinesNLPMigrator:
-
     def __init__(self):
         self.class_loader = ClassLoader()
         self.zk_fusion_host = VariablesHelper.get_fusion_zookeeper_host()
@@ -39,7 +38,7 @@ class PipelinesNLPMigrator:
             pipeline = self.zookeeper_client.get_as_json(pipeline_node)
             is_pipeline_updated = fix_pipeline_extractor_stages(pipeline)
             if is_pipeline_updated:
-                logging.info("Updating pipeline '{}'".format(pipeline.get("id")))
+                logger.info("Updating pipeline '{}'".format(pipeline.get("id")))
                 self.zookeeper_client.set_as_json(pipeline_node, pipeline)
 
 def fix_pipeline_extractor_stages(pipeline):
@@ -91,7 +90,7 @@ class PipelinesNLPMigrator3x:
         if self.old_zk and self.old_zk.exists(zk_pipelines_node):
             read_zk = old_zk
         elif not self.read_zk.exists(zk_pipelines_node):
-            logging.info("NLP znode path {} does not exist. No migrations to perform".format(zk_pipeline_node))
+            logger.info("NLP znode path {} does not exist. No migrations to perform".format(zk_pipeline_node))
             return
 
         children = self.read_zk.get_children(zk_pipelines_node)
@@ -102,5 +101,5 @@ class PipelinesNLPMigrator3x:
 
             is_pipeline_updated = fix_pipeline_extractor_stages(pipeline)
             if is_pipeline_updated:
-                logging.info("Updating pipeline '{}'".format(pipeline.get("id")))
+                logger.info("Updating pipeline '{}'".format(pipeline.get("id")))
                 self.write_zk.set_as_json(pipeline_node, pipeline)

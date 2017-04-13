@@ -6,6 +6,7 @@ import re
 import logging
 
 class ResourceManager:
+  logger = logging.getLogger(__name__)
   def __init__(self):
     pass
 
@@ -14,6 +15,6 @@ class ResourceManager:
     source_dir = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(source_dir, "../resources/{}".
                         format(filename))
-    logging.info("Loading file from path {}".format(path))
+    logger.info("Loading file from path {}".format(path))
     with open(path) as data_file:
       return json.load(data_file)

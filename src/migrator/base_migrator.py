@@ -3,7 +3,7 @@ from src.utils.constants import *
 import logging
 
 class BaseMigrator:
-
+  logger = logging.getLogger(__name__)
   def delete_properties(self, data_source, properties):
     for property in properties:
       try:
@@ -11,6 +11,6 @@ class BaseMigrator:
           if property in data_source[PROPERTIES]:
             del data_source[PROPERTIES][property]
       except:
-        logging.warn("Could not delete property: %s", property)
+        logger.warn("Could not delete property: %s", property)
         continue
     return data_source

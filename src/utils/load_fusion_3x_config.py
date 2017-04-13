@@ -5,6 +5,7 @@ import subprocess
 import shlex
 import json
 
+logger = logging.getLogger(__name__)
 
 def get_property(fusion_home, property_name, service="api"):
     jar_path = os.path.join(fusion_home, "apps", "lucidworks-agent.jar")
@@ -19,7 +20,7 @@ def get_property(fusion_home, property_name, service="api"):
     # Sometimes we accidentally print bogus stuff to the command line in addition to the actual property.
     # The last line is most likely the real result.
     result = out.splitlines()[-1]
-    logging.info("Got return code {} while running config command '{}' in {}. Result was: {} \nstderr: {}".format(return_code, command, fusion_home, result, err))
+    logger.info("Got return code {} while running config command '{}' in {}. Result was: {} \nstderr: {}".format(return_code, command, fusion_home, result, err))
     return result
 
 
@@ -33,9 +34,9 @@ def generate_config_file(fusion_home, service="ui"):
     # even if the file exists, it could have been generated off a seperate set of fusion configs or even a different 
     # fusion version so we should ALWAYS recreate it
     if os.path.exists(file_fullpath):
-        logging.info("File '{}' exists, deleting old version".format(file_fullpath))
+        logger.info("File '{}' exists, deleting old version".format(file_fullpath))
         os.remove(file_fullpath)
-    logging.info("Creating config file using agent")
+    logger.info("Creating config file using agent")
     jar_path = os.path.join(fusion_home, "apps", "lucidworks-agent.jar")
     command = "java -DFUSION_HOME=\"{0}\" -jar \"{1}\" config -o \"{2}\" {3}".format(fusion_home, jar_path,
                                                                                      file_fullpath, service)
@@ -43,15 +44,15 @@ def generate_config_file(fusion_home, service="ui"):
     popen = subprocess.Popen(args)
     return_code = popen.wait()
     if not os.path.exists(file_fullpath):
-        logging.critical("Failed to generate config file using the command '{}' at path '{}'. Return code '{}'".format(command, file_fullpath, return_code))
+        logger.critical("Failed to generate config file using the command '{}' at path '{}'. Return code '{}'".format(command, file_fullpath, return_code))
         sys.exit(1)
-    logging.info("Generated config file at path '{}'".format(file_fullpath))
+    logger.info("Generated config file at path '{}'".format(file_fullpath))
     return file_fullpath
 
 
 def load_config_from_file(path, service="ui"):
     if not os.path.exists(path):
-        logging.critical("CRITICAL: Config file does not exist at path '{0}'.\n Please run"
+        logger.critical("CRITICAL: Config file does not exist at path '{0}'.\n Please run"
                          " 'java -jar apps/lucidworks-agent.jar config -o {1}.config.json {1}' command from '{2}' "
                          "to generate the config file".format(path, service, VariablesHelper.FUSION_HOME))
         sys.exit(1)
@@ -67,7 +68,7 @@ def load_config_from_file(path, service="ui"):
         if system_props.has_key("com.lucidworks.apollo.admin.db.zk.namespace"):
             config["proxy.namespace"] = system_props["com.lucidworks.apollo.admin.db.zk.namespace"]
     except Exception as e:
-        logging.error("Could not read config from the file {} ".format(path))
+        logger.error("Could not read config from the file {} ".format(path))
         raise e
     return config
 
@@ -77,7 +78,7 @@ def parse_solr_namespace(solr_zk_connect):
     if index != -1:
         return solr_zk_connect[index:len(solr_zk_connect)]
     else:
-        logging.error("Could not find any namespace in the Solr ZK connection string '{}'".format(solr_zk_connect))
+        logger.error("Could not find any namespace in the Solr ZK connection string '{}'".format(solr_zk_connect))
 
 
 def load_or_generate_config(fusion_home, service="ui"):

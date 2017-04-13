@@ -1,6 +1,7 @@
 import logging
 import json
 import sys
+logger = logging.getLogger(__name__)
 
 def update_searchcluster_pojo(config, zk, old_zk):
     solr_zk_connect_string = config["solr.zk.connect"]
@@ -12,7 +13,7 @@ def update_searchcluster_pojo(config, zk, old_zk):
     elif zk.exists(searchcluster_znode_path):
         value, zstat = zk.get(searchcluster_znode_path)
     else:
-        logging.critical("Search cluster POJO does not exist at zpath '{}'".format(searchcluster_znode_path))
+        logger.critical("Search cluster POJO does not exist at zpath '{}'".format(searchcluster_znode_path))
         sys.exit(1)
 
     # Read the payload from Zookeeper
@@ -20,6 +21,6 @@ def update_searchcluster_pojo(config, zk, old_zk):
     deser_payload = json.loads(value)
     deser_payload["connectString"] = solr_zk_connect_string
 
-    logging.info("Updating search-cluster payload at path '{}'".format(searchcluster_znode_path))
+    logger.info("Updating search-cluster payload at path '{}'".format(searchcluster_znode_path))
     # Write the updated payload to Zookeeper
     zk.set(searchcluster_znode_path, value=json.dumps(deser_payload))

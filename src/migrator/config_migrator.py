@@ -9,6 +9,7 @@ from utils.variables_helper import VariablesHelper
 
 
 class ConfigMigrator():
+    logger = logging.getLogger(__name__)
     # These are the defaults as of 2.4.3. Do we need different defaults for different versions?
     default_properties = {"API_JAVA_OPTIONS": "-Xmx1g -XX:MaxPermSize=256m -Dapple.awt.UIElement=true",
                           "API_PORT": "8765",
@@ -104,7 +105,7 @@ class ConfigMigrator():
                             new_config[hostname_key] = match.group(1)
                             value = value.replace(match.group(), "")  # strip out the hostname arg
                     
-                    logging.debug("{} ({}): {}".format(old_key, new_key, value))
+                    logger.debug("{} ({}): {}".format(old_key, new_key, value))
                     
                     # For each thing we've found, compare against the default values from the old config. If they're
                     # the same as default, don't bother to set them. Note that that means we're potentially changing
@@ -114,13 +115,13 @@ class ConfigMigrator():
                     if old_key in self.default_properties and value != self.default_properties[old_key]:
                         new_config[new_key] = value
         
-        logging.debug("new config: {}".format(new_config))
+        logger.debug("new config: {}".format(new_config))
         return new_config
     
     def convert(self):
         new_config = self.generate_new_config()
         if len(new_config) == 0:
-            logging.info("No properties to update from config.sh to fusion.properties")
+            logger.info("No properties to update from config.sh to fusion.properties")
             return
         
         config_file_path = os.path.join(self.new_home, "conf", "fusion.properties")
@@ -139,7 +140,7 @@ class ConfigMigrator():
         # write it
         with open(config_file_path, "w") as f:
             f.write(str(props))
-            logging.info("Updated fusion.properties with the properties: {}".format(new_config))
+            logger.info("Updated fusion.properties with the properties: {}".format(new_config))
     
     def clean_java_options(self, java_options):
         return java_options.lstrip('( ').rstrip(') ')

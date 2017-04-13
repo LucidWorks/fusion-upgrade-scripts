@@ -2,6 +2,7 @@ import sys
 import logging
 
 class ZNodesMigrator:
+    logger = logging.getLogger(__name__)
     def __init__(self, config, zk, old_zk):
         self.config = config
         self.zk = zk
@@ -13,13 +14,13 @@ class ZNodesMigrator:
         self.migrate_proxy_data()
 
     def migrate_solr_data(self):
-        logging.info("Migrating Solr data to new ZK namespace {}".format(self.config["solr.namespace"]))
+        logger.info("Migrating Solr data to new ZK namespace {}".format(self.config["solr.namespace"]))
         solr_znodes = ["aliases.json", "clusterstate.json", "collections", "configs", "live_nodes", "overseer",
                        "overseer_elect", "security.json"]
         self.copy_znode_data(solr_znodes, "/", self.config["solr.namespace"])
 
     def migrate_core_data(self):
-        logging.info("Migrating api data to new ZK namespace {}".format(self.config["api.namespace"]))
+        logger.info("Migrating api data to new ZK namespace {}".format(self.config["api.namespace"]))
         old_core_znode_root = "/lucid"
         
         if self.old_zk and self.old_zk.exists(old_core_znode_root):
@@ -27,23 +28,23 @@ class ZNodesMigrator:
         elif self.zk.exists(old_core_znode_root):
             self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["api.namespace"])
         else:
-            logging.critical("Could not find zkpath '{}'".format(old_core_znode_root))
+            logger.critical("Could not find zkpath '{}'".format(old_core_znode_root))
             sys.exit(1)
 
     def migrate_proxy_data(self):
-        logging.info("Migrating proxy data to new ZK namespace {}".format(self.config["proxy.namespace"]))
+        logger.info("Migrating proxy data to new ZK namespace {}".format(self.config["proxy.namespace"]))
         old_core_znode_root = "/lucid-apollo-admin"
         if self.old_zk and self.old_zk.exists(old_core_znode_root):
             self.copy_znode_data(self.old_zk.get_children(old_core_znode_root), old_core_znode_root, self.config["proxy.namespace"])
         elif self.zk.exists(old_core_znode_root):
             self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["proxy.namespace"])
         else:
-            logging.critical("Could not find zkpath '{}'".format(old_core_znode_root))
+            logger.critical("Could not find zkpath '{}'".format(old_core_znode_root))
             sys.exit(1)
 
     def copy_znode_data(self, znodes, old_root, new_root):
         for node_name in znodes:
-            logging.debug("Migrating znode '{}' data from old path '{}' to new path '{}'".format(node_name, old_root, new_root))
+            logger.debug("Migrating znode '{}' data from old path '{}' to new path '{}'".format(node_name, old_root, new_root))
             
             # Get proper root if old root is just "/"
             if old_root == '/':
@@ -61,7 +62,7 @@ class ZNodesMigrator:
                 children = self.zk.get_children(znode_fullpath)
             # if neither have the node then log the error and skip to the next one
             else:
-                logging.error("Znode path '{}' does not exist".format(znode_fullpath))
+                logger.error("Znode path '{}' does not exist".format(znode_fullpath))
                 continue
             
             # generate the new_fullpath
@@ -78,5 +79,5 @@ class ZNodesMigrator:
 
     def migrate_znode_data(self, path, data):
         if not self.zk.exists(path):
-            logging.debug("not copying znode '{}' since it already exists".format(path))
+            logger.debug("not copying znode '{}' since it already exists".format(path))
             real_path = self.zk.create(path, value=data, makepath=True)

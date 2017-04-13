@@ -6,6 +6,7 @@ import logging
 
 
 class SplitterMigrator():
+  logger = logging.getLogger(__name__)
   DEFAULT_CSV_PARSER = {
     "type": "csv",
     "charset": "detect",
@@ -124,7 +125,7 @@ class SplitterMigrator():
     return archive_parser
 
   def migrate_anda_splitter(self, datasource):
-    logging.info("Executing migrate_anda_splitter for DS {}".format(datasource["id"]))
+    logger.info("Executing migrate_anda_splitter for DS {}".format(datasource["id"]))
     parsers = []
     splitter = dict(datasource[PROPERTIES].pop(SPLIT_CSV, {}))
     split_archives = bool(datasource[PROPERTIES].pop(SPLIT_ARCHIVES, False))
@@ -150,7 +151,7 @@ class SplitterMigrator():
     return parsers, datasource
 
   def migrate_fs_splitter(self, datasource):
-    logging.info("Executing migrate_fs_splitter for DS {}".format(datasource["id"]))
+    logger.info("Executing migrate_fs_splitter for DS {}".format(datasource["id"]))
     splitter = datasource[PROPERTIES].pop(SPLITTER, {})
 
     if len(splitter) == 0:
@@ -193,7 +194,7 @@ class SplitterMigrator():
 
     zk_node = "{}/parsers/{}".format(self.zk_fusion_node, parser_name)
 
-    logging.info("Creating parser '{}' at path {}".format(parser_name, zk_node))
+    logger.info("Creating parser '{}' at path {}".format(parser_name, zk_node))
     
     if not self.write_zk.exists(zk_node):
       self.write_zk.create(zk_node, makepath=True)
@@ -211,7 +212,7 @@ class SplitterMigrator():
     if self.old_zk and self.old_zk.exists(datasources_znode):
       read_zk = old_zk
     elif not self.read_zk.exists(datasources_znode):
-      logging.info("Connectors znode path {} does not exist. No migrations to perform".format(datasources_znode))
+      logger.info("Connectors znode path {} does not exist. No migrations to perform".format(datasources_znode))
       return
 
     children = self.read_zk.get_children(datasources_znode)
