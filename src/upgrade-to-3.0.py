@@ -25,9 +25,8 @@ from src.utils.zookeeper_client import ZookeeperClient
 from src.migrator.config_migrator import ConfigMigrator
 from src.migrator.splitter_migrator import SplitterMigrator
 
-
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s")
+log_format = "%(asctime)s - %(name)s - %(filename)s:%(lineno)d - %(levelname)s - %(message)s"
+log_level = logging.INFO
 
 parser = argparse.ArgumentParser(description="Migrate datasource properties")
 parser.add_argument("--datasources", 
@@ -166,19 +165,22 @@ def upgrade_banana_dashboards(url, username, password):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    log_level = args.log_level.lower()
-    if log_level == 'critical':
-        logging.setLevel(logging.CRITICAL)
-    elif log_level == 'error':
-        logging.setLevel(logging.ERROR)
-    elif log_level == 'warning':
-        logging.setLevel(logging.WARNING)
-    elif log_level == 'info':
-        logging.setLevel(logging.INFO)
-    elif log_level == 'debug':
-        logging.setLevel(logging.DEBUG)
-    else
-        logging.setLevel(logging.INFO)
+    loger_level = args.log_level.lower()
+    if loger_level == 'critical':
+        log_level = logging.CRITICAL
+    elif loger_level == 'error':
+        log_level = logging.ERROR
+    elif loger_level == 'warning':
+        log_level = logging.WARNING
+    elif loger_level == 'info':
+        log_level = logging.INFO
+    elif loger_level == 'debug':
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+    
+    logging.basicConfig(log_level,
+                        format=log_format)
     
     data_sources_to_migrate = args.datasources
     type_of_upgrade = args.upgrade
