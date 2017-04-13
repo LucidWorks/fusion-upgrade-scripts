@@ -84,7 +84,8 @@ def upgrade_zk_data(fusion_home, fusion_old_home, old_fusion_version, fusion_ver
     old_config = None
     old_zk_client = None
     if fusion_old_home:
-        old_config = load_or_generate_config(fusion_old_home)
+    	#TODO: Check version for < 3 before assuming that need to pass in new fusion_home for jar
+        old_config = load_or_generate_config(fusion_old_home, 'ui', fusion_home)
         old_zk_client = start_zk_client(old_config)
 
     logger.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))

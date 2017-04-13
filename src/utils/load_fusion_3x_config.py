@@ -24,7 +24,7 @@ def get_property(fusion_home, property_name, service="api"):
     return result
 
 
-def generate_config_file(fusion_home, service="ui"):
+def generate_config_file(fusion_home, service="ui", jar_home=None):
     output_file_name = "{}.config.json".format(service)
     # we used to write the temporary config file out to FUSION_HOME, but that breaks on Windows for reasons I don't
     # understand.
@@ -37,7 +37,11 @@ def generate_config_file(fusion_home, service="ui"):
         logger.info("File '{}' exists, deleting old version".format(file_fullpath))
         os.remove(file_fullpath)
     logger.info("Creating config file using agent")
-    jar_path = os.path.join(fusion_home, "apps", "lucidworks-agent.jar")
+    #allow for the jar to be in a different version in case am upgrading from < 3
+    if jar_home:
+    	jar_path = os.path.join(jar_home, "apps", "lucidworks-agent.jar")
+    else:
+    	jar_path = os.path.join(fusion_home, "apps", "lucidworks-agent.jar")
     command = "java -DFUSION_HOME=\"{0}\" -jar \"{1}\" config -o \"{2}\" {3}".format(fusion_home, jar_path,
                                                                                      file_fullpath, service)
     args = shlex.split(command)
@@ -81,9 +85,10 @@ def parse_solr_namespace(solr_zk_connect):
         logger.error("Could not find any namespace in the Solr ZK connection string '{}'".format(solr_zk_connect))
 
 
-def load_or_generate_config(fusion_home, service="ui"):
-    config_file_path = generate_config_file(fusion_home, service)
+def load_or_generate_config(fusion_home, service="ui", jar_home=None):
+    config_file_path = generate_config_file(fusion_home, service, jar_home)
     config = load_config_from_file(config_file_path, service)
+    os.remove(config_file_path)
     # you're assuming here that if zk is external then solr is also external which may not be correct. You can have
     # external zk and internal solr resulting in only a fusion.zk.connect string so you have to account for them both
     # Sidenote: I honestly have no idea why the config is being generated with a solr.zk.connect string when it isn't
@@ -92,9 +97,13 @@ def load_or_generate_config(fusion_home, service="ui"):
     return config
 
 
-def load_or_generate_config3(fusion_home, service="ui"):
-    config_file_path = generate_config_file(fusion_home, service)
+def load_or_generate_config3(fusion_home, service="ui", jar_home=None):
+    config_file_path = generate_config_file(fusion_home, service, jar_home)
     config = load_config_from_file(config_file_path, service)
     os.remove(config_file_path)
-    config["solr.namespace"] = parse_solr_namespace(config["solr.zk.connect"])
+    # you're assuming here that if zk is external then solr is also external which may not be correct. You can have
+    # external zk and internal solr resulting in only a fusion.zk.connect string so you have to account for them both
+    # Sidenote: I honestly have no idea why the config is being generated with a solr.zk.connect string when it isn't
+    # defined in the fusion.properties... something in that Jar being run to generate the config is off
+    config["solr.namespace"] = parse_solr_namespace(config["solr.zk.connect"] or config["fusion.zk.connect"])
     return config
