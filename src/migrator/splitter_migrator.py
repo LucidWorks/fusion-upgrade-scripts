@@ -102,8 +102,10 @@ class SplitterMigrator():
   CONNECTORS_SUPPORTED = [DROPBOX, FILE, GOOGLEDRIVE, SHAREPOINT, WEB, FTP, HDFS, SMB, AZURE, HADOOP, FILE_UPLOAD,
                           TWITTER_SEARCH, TWITTER_STREAM, JIVE, S3]
 
-  def __init__(self, config, zookeeper_client):
-    self.zookeeper_client = zookeeper_client
+  def __init__(self, config, zk_client, old_zk_client):
+    self.write_zk = zk_client
+    self.read_zk = zk_client
+    self.old_zk = old_zk_client
     self.zk_fusion_node = config["api.namespace"]
 
   def generate_id(self):
@@ -193,10 +195,10 @@ class SplitterMigrator():
 
     logging.info("Creating parser '{}' at path {}".format(parser_name, zk_node))
     
-    if not self.zookeeper_client.exists(zk_node):
-      self.zookeeper_client.create(zk_node, makepath=True)
+    if not self.write_zk.exists(zk_node):
+      self.write_zk.create(zk_node, makepath=True)
 
-    self.zookeeper_client.set(zk_node, json.dumps(parser_conf, indent=2))
+    self.write_zk.set(zk_node, json.dumps(parser_conf, indent=2))
     datasource = self.set_parser_to_datasource(datasource, parser_name)
 
     return datasource
@@ -205,19 +207,18 @@ class SplitterMigrator():
     connectors_znode = "{}/connectors".format(self.zk_fusion_node)
     datasources_znode = "{}/datasources".format(connectors_znode)
 
-    if not self.zookeeper_client.exists(connectors_znode):
-      logging.info("Connectors znode path {} does not exist. No migrations to perform".format(connectors_znode))
+    # no need to verify that connectors znode exist because it is used to just define datasources_znode
+    if self.old_zk and self.old_zk.exists(datasources_znode):
+      read_zk = old_zk
+    elif not self.read_zk.exists(datasources_znode):
+      logging.info("Connectors znode path {} does not exist. No migrations to perform".format(datasources_znode))
       return
-    else:
-      if not self.zookeeper_client.exists(datasources_znode):
-        logging.info("Connectors znode path {} does not exist. No migrations to perform".format(datasources_znode))
-        return
 
-    children = self.zookeeper_client.get_children(datasources_znode)
+    children = self.read_zk.get_children(datasources_znode)
 
     for child in children:
       datasource_node = "{}/{}".format(datasources_znode, child)
-      value, zstat = self.zookeeper_client.get(datasource_node)
+      value, zstat = self.read_zk.get(datasource_node)
       datasource = json.loads(value)
       connector = datasource[CONNECTOR]
       type = datasource[TYPE]
@@ -234,4 +235,4 @@ class SplitterMigrator():
       else:
         updated_datasource = self.set_parser_to_datasource(datasource, None)
 
-      self.zookeeper_client.set(datasource_node, json.dumps(updated_datasource, indent=2))
+      self.write_zk.set(datasource_node, json.dumps(updated_datasource, indent=2))

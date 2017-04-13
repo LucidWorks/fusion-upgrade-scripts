@@ -2,9 +2,10 @@ import sys
 import logging
 
 class ZNodesMigrator:
-    def __init__(self, config, zk):
+    def __init__(self, config, zk, old_zk):
         self.config = config
         self.zk = zk
+        self.old_zk = old_zk
 
     def start(self):
         self.migrate_solr_data()
@@ -20,29 +21,58 @@ class ZNodesMigrator:
     def migrate_core_data(self):
         logging.info("Migrating api data to new ZK namespace {}".format(self.config["api.namespace"]))
         old_core_znode_root = "/lucid"
-        if not self.zk.exists(old_core_znode_root):
+        
+        if self.old_zk.exists(old_core_znode_root):
+        	self.copy_znode_data(self.old_zk.get_children(old_core_znode_root), old_core_znode_root, self.config["api.namespace"])
+        else if self.zk.exists(old_core_znode_root):
+        	self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["api.namespace"])
+        else:
             sys.exit("Could not find zkpath '{}'".format(old_core_znode_root))
-        self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["api.namespace"])
 
     def migrate_proxy_data(self):
         logging.info("Migrating proxy data to new ZK namespace {}".format(self.config["proxy.namespace"]))
         old_core_znode_root = "/lucid-apollo-admin"
-        if not self.zk.exists(old_core_znode_root):
+        if self.old_zk.exists(old_core_znode_root):
+        	self.copy_znode_data(self.old_zk.get_children(old_core_znode_root), old_core_znode_root, self.config["proxy.namespace"])
+        else if self.zk.exists(old_core_znode_root):
+        	self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["proxy.namespace"])
+        else:
             sys.exit("Could not find zkpath '{}'".format(old_core_znode_root))
-        self.copy_znode_data(self.zk.get_children(old_core_znode_root), old_core_znode_root, self.config["proxy.namespace"])
 
     def copy_znode_data(self, znodes, old_root, new_root):
         for node_name in znodes:
             logging.debug("Migrating znode '{}' data from old path '{}' to new path '{}'".format(node_name, old_root, new_root))
-            znode_fullpath = "{}/{}".format(old_root, node_name)
-            if self.zk.exists(znode_fullpath):
+            
+            # Get proper root if old root is just "/"
+            if old_root == '/':
+            	znode_fullpath = "/{}".format(node_name)
+            else:
+	            znode_fullpath = "{}/{}".format(old_root, node_name)
+			
+			# if oldzk is present and the node exists there then grab the information from the old host
+			if self.old_zk && self.old_zk.exists(znode_fullpath):
+				value, zstat = self.old_zk.get(znode_fullpath)
+                children = self.old_zk.get_children(znode_fullpath)
+            # if oldzk doesn't exist or have the node information then check newzk for it 
+            elif self.zk.exists(znode_fullpath):  
                 value, zstat = self.zk.get(znode_fullpath)
-                new_fullpath = "{}/{}".format(new_root, node_name)
-                self.migrate_znode_data(new_fullpath, value)
                 children = self.zk.get_children(znode_fullpath)
-                self.copy_znode_data(children, znode_fullpath, "{}/{}".format(new_root, node_name))
+            # if neither have the node then log the error and skip to the next one
             else:
                 logging.error("Znode path '{}' does not exist".format(znode_fullpath))
+                return
+            
+            # generate the new_fullpath
+            if new_root:
+            	new_fullpath = "{}/{}".format(new_root, node_name)
+            else:
+            	new_fullpath = "/{}".format(node_name)
+
+            # actually save the data to the new zk or recurse to children
+            if value:
+                self.migrate_znode_data(new_fullpath, value)
+            if children:
+                self.copy_znode_data(children, znode_fullpath, new_fullpath)
 
     def migrate_znode_data(self, path, data):
         if not self.zk.exists(path):

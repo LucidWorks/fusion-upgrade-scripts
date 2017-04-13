@@ -85,13 +85,15 @@ class ConnectorsMigrator:
 
 class ConnectorsMigrator3x:
 
-    def __init__(self, config, zk):
+    def __init__(self, config, zk, old_zk):
         self.class_loader = ClassLoader()
         self.zk_fusion_host = config["fusion.zk.connect"]
         self.zk_fusion_node = config["api.namespace"]
         self.fusion_version = VariablesHelper.get_fusion_version()
         self.old_fusion_version = VariablesHelper.get_old_fusion_version()
-        self.zk_client = zk
+        self.write_zk = zk
+        self.read_zk = zk   #abstraction to allow for setting which zk to read from
+        self.old_zk_client = old_zk
         self.deprecated_types = ["logstash"]
 
     def start(self, data_source_to_migrate):
@@ -99,27 +101,27 @@ class ConnectorsMigrator3x:
         connectors_znode = "{}/connectors".format(self.zk_fusion_node)
         datasources_znode = "{}/datasources".format(connectors_znode)
 
-        if not self.zk_client.exists(connectors_znode):
+        # No reason to check existance of connectors_znode here since it isn't used past generating datasources_znode
+        # set the read_zk to old_zk if old_zk exists and the node exists there
+        if self.old_zk and self.old_zk_client.exists(datasources_znode):
+            read_zk = old_zk_client
+        elif not self.read_zk.exists(datasources_znode):
             logging.info("Connectors znode path {} does not exist. No migrations to perform".format(connectors_znode))
             return
-        else:
-            if not self.zk_client.exists(datasources_znode):
-                logging.info("Connectors znode path {} does not exist. No migrations to perform".format(datasources_znode))
-                return
 
         if data_source_to_migrate is None or len(data_source_to_migrate) == 0 or data_source_to_migrate[0] == "all":
-            children = self.zk_client.get_children(datasources_znode)
+            children = self.read_zk.get_children(datasources_znode)
         else:
             children = data_source_to_migrate
             for child in children:
                 child_node = "{}/{}".format(datasources_znode, child)
-                if not self.zk_client.exists(child_node):
+                if not self.read_zk.exists(child_node):
                     logging.info("Node {} does not exist".format(child_node))
                     return
 
         for child in children:
             data_source_node = "{}/{}".format(datasources_znode, child)
-            value, zstat = self.zk_client.get(data_source_node)
+            value, zstat = self.read_zk.get(data_source_node)
             data_source = json.loads(value)
             ds_type = data_source["type"]
 
@@ -128,7 +130,7 @@ class ConnectorsMigrator3x:
             # Remove the deprecated datasources
             if ds_type in self.deprecated_types:
                 logging.info("Removing deprecated datasource '{}' of type '{}'".format(child, ds_type))
-                self.zk_client.delete(data_source_node)
+                self.write_zk.delete(data_source_node)
                 continue
 
             ds_version = self.old_fusion_version
@@ -158,7 +160,7 @@ class ConnectorsMigrator3x:
                         if counter == len(ds_migrators) - 1:
                             # print counter, len(ds_migrators)
                             logging.info("Updating Datasource POJO for id '{}' and type '{}'".format(child, ds_type))
-                            self.zk_client.set(data_source_node, value=json.dumps(updated_datasource))
+                            self.write_zk.set(data_source_node, value=json.dumps(updated_datasource))
                     else:
                         logging.debug("No migrator found for datasource '{}' version '{}' and new version '{}' for type '{}'".format(child, ds_version, self.fusion_version, ds_type))
                         continue

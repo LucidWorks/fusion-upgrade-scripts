@@ -37,6 +37,7 @@ parser.add_argument("--upgrade", required=True, choices=['config', 'zk', 'banana
                     help="Type of upgrade to perform")
 parser.add_argument("--fusion-url", default="http://localhost:8764/api", help="URL of the Fusion proxy server")
 parser.add_argument("--fusion-username", default="admin", help="Username to use when authenticating to the Fusion application (should be an admin)")
+parser.add_argument("--dualZK", required=False, help="If true, will try to pull Zookeeper configs from server associated with OLD_FUSION_HOME instead of from one associated with FUSION_HOME", choices['T', 't', 'True', 'true', 'F', 'f', 'false', 'False'])
 
 def ensure_env_variables_defined():
     if not VariablesHelper.ensure_fusion_home():
@@ -56,37 +57,40 @@ def start_zk_client(fconfig):
 def stop_zk_client(zk):
     zk.stop()
 
-def upgrade_zk_data(fusion_home, old_fusion_version, fusion_version):
+def upgrade_zk_data(fusion_home, fusion_old_home, old_fusion_version, fusion_version):
     # Load the 3.0.0 config from file or generate if needed. This will load from the config generated above.
     config = load_or_generate_config(fusion_home)
+    old_config = load_or_generate_config(fusion_old_home)
     zk_client = start_zk_client(config)
+    old_zk_client = start_zk_client(old_config)
 
     logging.info("Migrating from fusion version '{}' to '{}'".format(old_fusion_version, fusion_version))
     if StrictVersion(fusion_version) >= StrictVersion("3.0.0") > StrictVersion(old_fusion_version):
-        znode_migrator = ZNodesMigrator(config, zk_client)
+        znode_migrator = ZNodesMigrator(config, zk_client, old_zk_client)
         logging.info("Copying znodes from old fusion paths to new paths")
         znode_migrator.start()
         logging.info("Migration from old znode paths to new paths complete")
 
-        update_searchcluster_pojo(config, zk_client)
-        update_initmeta_pojo(config, zk_client)
+        update_searchcluster_pojo(config, zk_client, old_zk_client)
+        update_initmeta_pojo(config, zk_client, old_zk_client)
 
         # Update datasource payloads
-        connectors_migrator = ConnectorsMigrator3x(config, zk_client)
+        connectors_migrator = ConnectorsMigrator3x(config, zk_client, old_zk_client)
         connectors_migrator.start(data_sources_to_migrate)
 
         logging.info("Performing splitter migrator")
-        splitter_migrator = SplitterMigrator(config, zk_client)
+        splitter_migrator = SplitterMigrator(config, zk_client, old_zk_client)
         splitter_migrator.start()
 
     if StrictVersion(fusion_version) >= StrictVersion("3.0.0") and StrictVersion("2.1.4") >= StrictVersion(old_fusion_version):
-        pipelines_migrator = PipelinesNLPMigrator3x(config, zk_client)
+        pipelines_migrator = PipelinesNLPMigrator3x(config, zk_client, old_zk_client)
         pipelines_migrator.migrate_indexpipelines()
     elif StrictVersion("2.1.4") >= StrictVersion(old_fusion_version):
         pipelines_migrator = PipelinesNLPMigrator()
         pipelines_migrator.migrate_indexpipelines()
 
     stop_zk_client(zk_client)
+    stop_zk_client(old_zk_client)
 
 def admin_session(url, username, password):
     headers = {"Content-type": "application/json"}
@@ -142,6 +146,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_sources_to_migrate = args.datasources
     type_of_upgrade = args.upgrade
+    dual_zk = args.dualZK
     ensure_env_variables_defined()
     old_fusion_version = VariablesHelper.get_old_fusion_version()
     fusion_version = VariablesHelper.get_fusion_version()
@@ -153,7 +158,11 @@ if __name__ == "__main__":
         # This is going to write a new config, based on the old config
         config_migrator.convert()
     elif type_of_upgrade == "zk":
-        upgrade_zk_data(fusion_home, old_fusion_version, fusion_version)
+        foh = None
+        #Exclude old home by default and only try to load if specified in params
+        if dual and dual.lower() in ['t','true']:
+            foh = fusion_old_home
+        upgrade_zk_data(fusion_home, foh, old_fusion_version, fusion_version)
     elif type_of_upgrade == "banana":
         url = args.fusion_url
         username = args.fusion_username

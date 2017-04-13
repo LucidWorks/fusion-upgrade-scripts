@@ -30,9 +30,11 @@ def generate_config_file(fusion_home, service="ui"):
     # But it's not necessary, and possibly not desired since it could be confusing to have something that looks like a
     # config file there in a user's FUSION_HOME. So we'll write it into the current directory instead.
     file_fullpath = output_file_name
+    # even if the file exists, it could have been generated off a seperate set of fusion configs or even a different 
+    # fusion version so we should ALWAYS recreate it
     if os.path.exists(file_fullpath):
-        logging.info("File '{}' already exists. No need to generate new config".format(file_fullpath))
-        return file_fullpath
+        logging.info("File '{}' exists, deleting old version"))
+        os.remove(file_fullpath)
     logging.info("Creating config file using agent")
     jar_path = os.path.join(fusion_home, "apps", "lucidworks-agent.jar")
     command = "java -DFUSION_HOME=\"{0}\" -jar \"{1}\" config -o \"{2}\" {3}".format(fusion_home, jar_path,
@@ -78,7 +80,11 @@ def parse_solr_namespace(solr_zk_connect):
 def load_or_generate_config(fusion_home, service="ui"):
     config_file_path = generate_config_file(fusion_home, service)
     config = load_config_from_file(config_file_path, service)
-    config["solr.namespace"] = parse_solr_namespace(config["solr.zk.connect"])
+    # you're assuming here that if zk is external then solr is also external which may not be correct. You can have
+    # external zk and internal solr resulting in only a fusion.zk.connect string so you have to account for them both
+    # Sidenote: I honestly have no idea why the config is being generated with a solr.zk.connect string when it isn't
+    # defined in the fusion.properties... something in that Jar being run to generate the config is off
+    config["solr.namespace"] = parse_solr_namespace(config["solr.zk.connect"] || config["fusion.zk.connect"])
     return config
 
 

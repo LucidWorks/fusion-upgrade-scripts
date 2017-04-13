@@ -1,13 +1,21 @@
 import json
 import logging
 
-def update_initmeta_pojo(config, zk):
+def update_initmeta_pojo(config, zk, old_zk):
     initmeta_znode_path = "{}/sys/init-meta".format(config["proxy.namespace"])
-    if not zk.exists(initmeta_znode_path):
+    
+    # if the POJO does not exist on either server, exit... Otherwise, grab it from the appropriate server
+    if old_zk and old_zk.exists(initmeta_znode_path):
+        value, zstat = old_zk.get(initmeta_znode_pathh)    
+    elif zk.exists(initmeta_znode_path):
+        value, zstat = zk.get(initmeta_znode_path)
+    else:
+        # I am leaving this in here for now but unsure why the system used to just warn and continue instead
+        # of exiting or returning when the init-meta POJO doesn't exist
         logging.warn("init-meta POJO does not exist at zpath '{}'".format(initmeta_znode_path))
+        #sys.exit("init-meta POJO does not exist at zpath '{}'".format(initmeta_znode_path))
 
     # Read the payload from Zookeeper
-    value, zstat = zk.get(initmeta_znode_path)
     deser_payload = json.loads(value)
     deser_payload["datasets-installed-at"] = deser_payload.get("initialized-at")
     deser_payload["initial-db-installed-at"] = deser_payload.get("initialized-at")
