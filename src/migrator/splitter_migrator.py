@@ -210,7 +210,7 @@ class SplitterMigrator():
 
     # no need to verify that connectors znode exist because it is used to just define datasources_znode
     if self.old_zk and self.old_zk.exists(datasources_znode):
-      read_zk = old_zk
+      read_zk = self.old_zk
     elif not self.read_zk.exists(datasources_znode):
       logger.info("Connectors znode path {} does not exist. No migrations to perform".format(datasources_znode))
       return

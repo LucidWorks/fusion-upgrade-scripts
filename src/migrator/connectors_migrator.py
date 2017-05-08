@@ -104,7 +104,7 @@ class ConnectorsMigrator3x:
         # No reason to check existance of connectors_znode here since it isn't used past generating datasources_znode
         # set the read_zk to old_zk if old_zk exists and the node exists there
         if self.old_zk_client and self.old_zk_client.exists(datasources_znode):
-            read_zk = old_zk_client
+            read_zk = self.old_zk_client
         elif not self.read_zk.exists(datasources_znode):
             logger.info("Connectors znode path {} does not exist. No migrations to perform".format(connectors_znode))
             return

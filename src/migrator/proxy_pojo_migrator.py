@@ -8,7 +8,7 @@ def update_initmeta_pojo(config, zk, old_zk):
     
     # if the POJO does not exist on either server, exit... Otherwise, grab it from the appropriate server
     if old_zk and old_zk.exists(initmeta_znode_path):
-        value, zstat = old_zk.get(initmeta_znode_pathh)    
+        value, zstat = old_zk.get(initmeta_znode_path)    
     elif zk.exists(initmeta_znode_path):
         value, zstat = zk.get(initmeta_znode_path)
     else:
