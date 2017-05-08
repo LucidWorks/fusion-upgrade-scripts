@@ -4,8 +4,8 @@ import logging
 import sys
 import platform
 
+logger = logging.getLogger(__name__)
 class VariablesHelper:
-
   def __init__(self):
     pass
 
@@ -83,7 +83,7 @@ class VariablesHelper:
     if m is not None:
       return m.group(0)
     else:
-      logging.error("Could not extract a valid version number from '{}'".format(version))
+      logger.critical("Could not extract a valid version number from '{}'".format(version))
       sys.exit(1)
      
   @staticmethod

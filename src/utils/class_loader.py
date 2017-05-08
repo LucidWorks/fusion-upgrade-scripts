@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import logging
+logger = logging.getLogger(__name__)
 
 class ClassLoader:
   classes_cache = {}
 
   def get_class(self, classname):
 
-    logging.debug("Loading class: {}".format(classname))
+    logger.debug("Loading class: {}".format(classname))
 
     if self.classes_cache.has_key(classname):
       return self.classes_cache.get(classname)
@@ -20,7 +21,7 @@ class ClassLoader:
       try:
         module = getattr(module, component)
       except:
-        logging.error("Component not found: %s", component)
+        logger.error("Component not found: %s", component)
         return None
 
     self.classes_cache[classname] = module
